@@ -1,0 +1,50 @@
+---
+- name: Install Docker, Docker Compose, Git
+  hosts: all
+  become: true
+  tasks:
+    - name: Update yum
+      ansible.builtin.yum:
+        update_cache: true
+
+    - name: Install dependences
+      ansible.builtin.yum:
+        name:
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+
+    - name: Add docker repository
+      ansible.builtin.command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      register: add_repo
+      changed_when: add_repo.rc != 0
+
+    - name: Install docker
+      ansible.builtin.yum:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Start and enable docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Download compose
+      ansible.builtin.command: curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+      register: download_compose
+      changed_when: download_compose.rc != 0
+
+    - name: Chmod X
+      ansible.builtin.file:
+        path: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Install Git
+      ansible.builtin.yum:
+        name: git
